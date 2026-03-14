@@ -35,7 +35,11 @@ if (!$equipmentId) {
 
     <div class="equipment-header" id="eq-header">
       <div class="info-item">
-        <label>Equipo</label>
+        <label>No. Económico</label>
+        <p id="eq-code">-</p>
+      </div>
+      <div class="info-item">
+        <label>Tipo</label>
         <p id="eq-type">-</p>
       </div>
       <div class="info-item">
@@ -68,6 +72,7 @@ if (!$equipmentId) {
     }).then(eq => {
       if (!eq) return;
       document.getElementById('page-title').textContent = 'REPORTES DE TRABAJO ' + eq.code;
+      document.getElementById('eq-code').textContent = eq.code;
       document.getElementById('eq-type').textContent = eq.type;
       document.getElementById('eq-brand').textContent = eq.brand;
       document.getElementById('eq-model').textContent = eq.model;

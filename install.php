@@ -30,6 +30,7 @@ try {
             model VARCHAR(100) NOT NULL,
             serial VARCHAR(100) NOT NULL,
             client_id INT NOT NULL,
+            status ENUM('Activo', 'En Mantenimiento', 'Inactivo') NOT NULL DEFAULT 'Activo',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (client_id) REFERENCES users(id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -51,6 +52,14 @@ try {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ");
     $messages[] = "Tabla 'reports' creada.";
+
+    // Add status column if missing (migration for existing installs)
+    try {
+        $pdo->exec("ALTER TABLE equipment ADD COLUMN status ENUM('Activo', 'En Mantenimiento', 'Inactivo') NOT NULL DEFAULT 'Activo' AFTER client_id");
+        $messages[] = "Columna 'status' agregada a equipment.";
+    } catch (Exception $e) {
+        // Column already exists, ignore
+    }
 
     // Crear usuario admin por defecto
     $stmt = $pdo->prepare('SELECT id FROM users WHERE username = ?');

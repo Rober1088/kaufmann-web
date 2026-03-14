@@ -21,7 +21,7 @@ $base = BASE_URL;
     <nav>
       <span class="user-info"><?= htmlspecialchars($user['name']) ?></span>
       <a href="#" onclick="showTab('clients')">CLIENTES</a>
-      <a href="#" onclick="showTab('equipment')">EQUIPOS</a>
+      <a href="<?= $base ?>/manage-equipment.php">EQUIPOS</a>
       <a href="#" onclick="showTab('reports')">REPORTES</a>
       <a href="<?= $base ?>/logout.php">SALIR</a>
     </nav>
@@ -67,7 +67,7 @@ $base = BASE_URL;
         <div class="table-container">
           <table>
             <thead>
-              <tr><th>Código</th><th>Tipo</th><th>Marca</th><th>Modelo</th><th>Serie</th><th>Cliente</th></tr>
+              <tr><th>No. Económico</th><th>Tipo</th><th>Marca</th><th>Modelo</th><th>Serie</th><th>Cliente</th></tr>
             </thead>
             <tbody id="equipment-table"></tbody>
           </table>
@@ -156,7 +156,7 @@ $base = BASE_URL;
           </select>
         </div>
         <div class="form-group">
-          <label>Código del Equipo</label>
+          <label>Número Económico</label>
           <input type="text" id="ne-code" required placeholder="Ej: MONT-26">
         </div>
         <div class="grid-2">
