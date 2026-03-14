@@ -1,10 +1,21 @@
+<?php
+require_once __DIR__ . '/../auth.php';
+requireClient();
+$user = currentUser();
+$base = BASE_URL;
+$equipmentId = intval($_GET['id'] ?? 0);
+if (!$equipmentId) {
+    header('Location: ' . $base . '/client/index.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reportes de Trabajo - Kaufmann</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="<?= $base ?>/css/style.css">
 </head>
 <body>
   <div class="header">
@@ -13,16 +24,15 @@
       <h1>KAUFMANN</h1>
     </div>
     <nav>
-      <span class="user-info" id="user-name"></span>
-      <a href="/client">MIS EQUIPOS</a>
-      <a href="/logout">SALIR</a>
+      <span class="user-info"><?= htmlspecialchars($user['name']) ?></span>
+      <a href="<?= $base ?>/client/index.php">MIS EQUIPOS</a>
+      <a href="<?= $base ?>/logout.php">SALIR</a>
     </nav>
   </div>
 
   <div class="main">
     <h2 class="page-title" id="page-title">REPORTES DE TRABAJO</h2>
 
-    <!-- Equipment Info -->
     <div class="equipment-header" id="eq-header">
       <div class="info-item">
         <label>Equipo</label>
@@ -42,7 +52,6 @@
       </div>
     </div>
 
-    <!-- Reports List -->
     <div class="card">
       <h3>Reportes de Trabajo</h3>
       <div id="reports-list"></div>
@@ -50,15 +59,11 @@
   </div>
 
   <script>
-    fetch('/api/me').then(r => r.json()).then(u => {
-      document.getElementById('user-name').textContent = u.name;
-    });
+    const BASE = '<?= $base ?>';
+    const equipmentId = <?= $equipmentId ?>;
 
-    const equipmentId = window.location.pathname.split('/').pop();
-
-    // Load equipment info
-    fetch('/api/equipment/' + equipmentId).then(r => {
-      if (!r.ok) { window.location = '/client'; return null; }
+    fetch(BASE + '/api/equipment.php?id=' + equipmentId).then(r => {
+      if (!r.ok) { window.location = BASE + '/client/index.php'; return null; }
       return r.json();
     }).then(eq => {
       if (!eq) return;
@@ -69,8 +74,7 @@
       document.getElementById('eq-serial').textContent = eq.serial;
     });
 
-    // Load reports
-    fetch('/api/reports/' + equipmentId).then(r => r.json()).then(reports => {
+    fetch(BASE + '/api/reports.php?equipment_id=' + equipmentId).then(r => r.json()).then(reports => {
       const container = document.getElementById('reports-list');
       if (reports.length === 0) {
         container.innerHTML = '<div style="padding:20px;text-align:center;color:#888;">No hay reportes para este equipo.</div>';
@@ -79,9 +83,9 @@
       container.innerHTML = reports.map(r => `
         <div class="report-item">
           <div class="report-info">
-            <div class="report-code">${r.report_code} – ${r.description} ${r.report_date}</div>
+            <div class="report-code">${r.report_code} \u2013 ${r.description} ${r.report_date}</div>
           </div>
-          <a href="/api/reports/download/${r.pdf_filename}" class="btn-download">
+          <a href="${BASE}/api/download.php?file=${r.pdf_filename}" class="btn-download">
             &#128196; DESCARGA EN PDF
           </a>
         </div>

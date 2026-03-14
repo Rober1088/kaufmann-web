@@ -1,10 +1,16 @@
+<?php
+require_once __DIR__ . '/auth.php';
+requireWorker();
+$user = currentUser();
+$base = BASE_URL;
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel Trabajador - Kaufmann</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="<?= $base ?>/css/style.css">
 </head>
 <body>
   <div class="header">
@@ -13,18 +19,17 @@
       <h1>KAUFMANN</h1>
     </div>
     <nav>
-      <span class="user-info" id="user-name"></span>
+      <span class="user-info"><?= htmlspecialchars($user['name']) ?></span>
       <a href="#" onclick="showTab('clients')">CLIENTES</a>
       <a href="#" onclick="showTab('equipment')">EQUIPOS</a>
       <a href="#" onclick="showTab('reports')">REPORTES</a>
-      <a href="/logout">SALIR</a>
+      <a href="<?= $base ?>/logout.php">SALIR</a>
     </nav>
   </div>
 
   <div class="main">
     <h2 class="page-title">PANEL DE TRABAJADOR</h2>
 
-    <!-- Tabs -->
     <div class="tabs">
       <button class="tab-btn active" onclick="showTab('clients')">Clientes</button>
       <button class="tab-btn" onclick="showTab('equipment')">Equipos</button>
@@ -40,11 +45,7 @@
         <div class="table-container">
           <table>
             <thead>
-              <tr>
-                <th>ID</th>
-                <th>Usuario</th>
-                <th>Nombre / Empresa</th>
-              </tr>
+              <tr><th>ID</th><th>Usuario</th><th>Nombre / Empresa</th></tr>
             </thead>
             <tbody id="clients-table"></tbody>
           </table>
@@ -66,14 +67,7 @@
         <div class="table-container">
           <table>
             <thead>
-              <tr>
-                <th>Código</th>
-                <th>Tipo</th>
-                <th>Marca</th>
-                <th>Modelo</th>
-                <th>Serie</th>
-                <th>Cliente</th>
-              </tr>
+              <tr><th>Código</th><th>Tipo</th><th>Marca</th><th>Modelo</th><th>Serie</th><th>Cliente</th></tr>
             </thead>
             <tbody id="equipment-table"></tbody>
           </table>
@@ -194,12 +188,8 @@
   </div>
 
   <script>
-    // Load user info
-    fetch('/api/me').then(r => r.json()).then(u => {
-      document.getElementById('user-name').textContent = u.name;
-    });
+    const BASE = '<?= $base ?>';
 
-    // Tab switching
     function showTab(tab) {
       document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -209,7 +199,6 @@
       if (idx >= 0) document.querySelectorAll('.tab-btn')[idx].classList.add('active');
     }
 
-    // Modal
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
@@ -221,14 +210,11 @@
 
     // CLIENTS
     function loadClients() {
-      fetch('/api/clients').then(r => r.json()).then(clients => {
-        const tbody = document.getElementById('clients-table');
-        tbody.innerHTML = clients.map(c =>
+      fetch(BASE + '/api/clients.php').then(r => r.json()).then(clients => {
+        document.getElementById('clients-table').innerHTML = clients.map(c =>
           '<tr><td>' + c.id + '</td><td>' + c.username + '</td><td>' + c.name + '</td></tr>'
         ).join('');
-        // Update all client selects
-        const selects = ['filter-client-eq', 'ne-client', 'report-client'];
-        selects.forEach(sid => {
+        ['filter-client-eq', 'ne-client', 'report-client'].forEach(sid => {
           const sel = document.getElementById(sid);
           const firstOpt = sel.options[0].outerHTML;
           sel.innerHTML = firstOpt + clients.map(c =>
@@ -240,7 +226,7 @@
 
     document.getElementById('form-new-client').addEventListener('submit', function(e) {
       e.preventDefault();
-      fetch('/api/clients', {
+      fetch(BASE + '/api/clients.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -260,10 +246,9 @@
     // EQUIPMENT
     function loadEquipment() {
       const clientId = document.getElementById('filter-client-eq').value;
-      const url = clientId ? '/api/equipment?client_id=' + clientId : '/api/equipment';
+      const url = BASE + '/api/equipment.php' + (clientId ? '?client_id=' + clientId : '');
       fetch(url).then(r => r.json()).then(equipment => {
-        const tbody = document.getElementById('equipment-table');
-        tbody.innerHTML = equipment.map(e =>
+        document.getElementById('equipment-table').innerHTML = equipment.map(e =>
           '<tr><td>' + e.code + '</td><td>' + e.type + '</td><td>' + e.brand + '</td><td>' + e.model + '</td><td>' + e.serial + '</td><td>' + e.client_name + '</td></tr>'
         ).join('');
       });
@@ -271,7 +256,7 @@
 
     document.getElementById('form-new-equipment').addEventListener('submit', function(e) {
       e.preventDefault();
-      fetch('/api/equipment', {
+      fetch(BASE + '/api/equipment.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -295,7 +280,7 @@
     function loadEquipmentForReport() {
       const clientId = document.getElementById('report-client').value;
       if (!clientId) return;
-      fetch('/api/equipment?client_id=' + clientId).then(r => r.json()).then(equipment => {
+      fetch(BASE + '/api/equipment.php?client_id=' + clientId).then(r => r.json()).then(equipment => {
         const sel = document.getElementById('report-equipment');
         sel.innerHTML = '<option value="">Seleccione un equipo</option>' + equipment.map(e =>
           '<option value="' + e.id + '">' + e.code + ' - ' + e.brand + ' ' + e.model + '</option>'
@@ -306,7 +291,7 @@
     document.getElementById('report-form').addEventListener('submit', function(e) {
       e.preventDefault();
       const formData = new FormData(this);
-      fetch('/api/reports', {
+      fetch(BASE + '/api/reports.php', {
         method: 'POST',
         body: formData
       }).then(r => r.json()).then(data => {
@@ -316,7 +301,6 @@
       });
     });
 
-    // Init
     loadClients();
     loadEquipment();
   </script>

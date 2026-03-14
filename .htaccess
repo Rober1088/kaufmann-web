@@ -1,0 +1,7 @@
+# Redirect /reportes/ to login
+DirectoryIndex login.php
+
+# Deny access to config files
+<FilesMatch "^(config|auth|database)\.php$">
+    Deny from all
+</FilesMatch>
