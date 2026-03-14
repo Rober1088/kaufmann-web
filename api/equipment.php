@@ -4,64 +4,75 @@ requireLogin();
 
 $user = currentUser();
 
+// Check if status column exists, add it if not
+try {
+    $pdo->query('SELECT status FROM equipment LIMIT 1');
+} catch (Exception $e) {
+    $pdo->exec("ALTER TABLE equipment ADD COLUMN status ENUM('Activo','En Mantenimiento','Inactivo') DEFAULT 'Activo'");
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    // Single equipment by ID
-    if (isset($_GET['id'])) {
-        if ($user['role'] === 'client') {
-            $stmt = $pdo->prepare('SELECT e.*, u.name as client_name FROM equipment e JOIN users u ON e.client_id = u.id WHERE e.id = ? AND e.client_id = ?');
-            $stmt->execute([$_GET['id'], $user['id']]);
-        } else {
-            $stmt = $pdo->prepare('SELECT e.*, u.name as client_name FROM equipment e JOIN users u ON e.client_id = u.id WHERE e.id = ?');
-            $stmt->execute([$_GET['id']]);
+    try {
+        // Single equipment by ID
+        if (isset($_GET['id'])) {
+            if ($user['role'] === 'client') {
+                $stmt = $pdo->prepare('SELECT e.id, e.code, e.type, e.brand, e.model, e.serial, e.client_id, e.status, e.created_at, u.name as client_name FROM equipment e JOIN users u ON e.client_id = u.id WHERE e.id = ? AND e.client_id = ?');
+                $stmt->execute([$_GET['id'], $user['id']]);
+            } else {
+                $stmt = $pdo->prepare('SELECT e.id, e.code, e.type, e.brand, e.model, e.serial, e.client_id, e.status, e.created_at, u.name as client_name FROM equipment e JOIN users u ON e.client_id = u.id WHERE e.id = ?');
+                $stmt->execute([$_GET['id']]);
+            }
+            $eq = $stmt->fetch();
+            if (!$eq) jsonResponse(['error' => 'Equipo no encontrado'], 404);
+            jsonResponse($eq);
         }
-        $eq = $stmt->fetch();
-        if (!$eq) jsonResponse(['error' => 'Equipo no encontrado'], 404);
-        jsonResponse($eq);
+
+        // Build query for listing
+        $where = [];
+        $params = [];
+
+        if ($user['role'] === 'client') {
+            $where[] = 'e.client_id = ?';
+            $params[] = $user['id'];
+        } elseif (!empty($_GET['client_id'])) {
+            $where[] = 'e.client_id = ?';
+            $params[] = $_GET['client_id'];
+        }
+
+        // Search filter
+        if (!empty($_GET['search'])) {
+            $search = '%' . $_GET['search'] . '%';
+            $where[] = '(e.code LIKE ? OR e.type LIKE ? OR e.brand LIKE ? OR e.model LIKE ? OR e.serial LIKE ?)';
+            $params = array_merge($params, [$search, $search, $search, $search, $search]);
+        }
+
+        // Status filter
+        if (!empty($_GET['status'])) {
+            $where[] = 'e.status = ?';
+            $params[] = $_GET['status'];
+        }
+
+        $sql = 'SELECT e.id, e.code, e.type, e.brand, e.model, e.serial, e.client_id, e.status, e.created_at, u.name as client_name FROM equipment e JOIN users u ON e.client_id = u.id';
+        if ($where) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+
+        // Sorting
+        $allowedSort = ['code', 'type', 'brand', 'model', 'serial', 'client_name', 'status', 'created_at'];
+        $sort = in_array($_GET['sort'] ?? '', $allowedSort) ? $_GET['sort'] : 'e.created_at';
+        $order = ($_GET['order'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
+        if ($sort === 'client_name') {
+            $sql .= " ORDER BY u.name $order";
+        } else {
+            $sql .= " ORDER BY e.$sort $order";
+        }
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        jsonResponse($stmt->fetchAll());
+    } catch (Exception $e) {
+        jsonResponse(['error' => 'Error al consultar equipos: ' . $e->getMessage()], 500);
     }
-
-    // Build query for listing
-    $where = [];
-    $params = [];
-
-    if ($user['role'] === 'client') {
-        $where[] = 'e.client_id = ?';
-        $params[] = $user['id'];
-    } elseif (!empty($_GET['client_id'])) {
-        $where[] = 'e.client_id = ?';
-        $params[] = $_GET['client_id'];
-    }
-
-    // Search filter
-    if (!empty($_GET['search'])) {
-        $search = '%' . $_GET['search'] . '%';
-        $where[] = '(e.code LIKE ? OR e.type LIKE ? OR e.brand LIKE ? OR e.model LIKE ? OR e.serial LIKE ?)';
-        $params = array_merge($params, [$search, $search, $search, $search, $search]);
-    }
-
-    // Status filter
-    if (!empty($_GET['status'])) {
-        $where[] = 'e.status = ?';
-        $params[] = $_GET['status'];
-    }
-
-    $sql = 'SELECT e.*, u.name as client_name FROM equipment e JOIN users u ON e.client_id = u.id';
-    if ($where) {
-        $sql .= ' WHERE ' . implode(' AND ', $where);
-    }
-
-    // Sorting
-    $allowedSort = ['code', 'type', 'brand', 'model', 'serial', 'client_name', 'status', 'created_at'];
-    $sort = in_array($_GET['sort'] ?? '', $allowedSort) ? $_GET['sort'] : 'e.created_at';
-    $order = ($_GET['order'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
-    if ($sort === 'client_name') {
-        $sql .= " ORDER BY u.name $order";
-    } else {
-        $sql .= " ORDER BY e.$sort $order";
-    }
-
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    jsonResponse($stmt->fetchAll());
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
