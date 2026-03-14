@@ -1,3 +1,5 @@
 node_modules/
 uploads/*.pdf
 kaufmann.db
+kaufmann.db-shm
+kaufmann.db-wal
