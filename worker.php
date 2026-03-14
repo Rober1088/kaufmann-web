@@ -105,8 +105,19 @@ $base = BASE_URL;
         </div>
         <div class="form-group">
           <label>Contrasena</label>
-          <input type="password" id="nc-password" required placeholder="Contrasena">
+          <div style="position:relative;">
+            <input type="password" id="nc-password" required placeholder="Contrasena">
+            <button type="button" onclick="togglePassword('nc-password', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#888;">&#128065;</button>
+          </div>
         </div>
+        <div class="form-group">
+          <label>Confirmar Contrasena</label>
+          <div style="position:relative;">
+            <input type="password" id="nc-password2" required placeholder="Repita la contrasena">
+            <button type="button" onclick="togglePassword('nc-password2', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:#888;">&#128065;</button>
+          </div>
+        </div>
+        <div id="password-error" style="color:#c41e3a;font-size:13px;margin-bottom:10px;display:none;">Las contrasenas no coinciden.</div>
         <div class="modal-actions">
           <button type="button" class="btn btn-sm" onclick="closeModal('modal-new-client')" style="background:#ccc;">Cancelar</button>
           <button type="submit" class="btn btn-success btn-sm">Crear Cliente</button>
@@ -198,6 +209,17 @@ $base = BASE_URL;
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
+    function togglePassword(inputId, btn) {
+      const inp = document.getElementById(inputId);
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        btn.style.color = '#d4a017';
+      } else {
+        inp.type = 'password';
+        btn.style.color = '#888';
+      }
+    }
+
     function showAlert(msg, type) {
       const el = document.getElementById('alert-global');
       el.innerHTML = '<div class="alert alert-' + type + '">' + esc(msg) + '</div>';
@@ -255,31 +277,44 @@ $base = BASE_URL;
 
     // ============ EQUIPMENT ============
     function loadEquipment(clientId) {
-      fetch(BASE + '/api/equipment.php?client_id=' + clientId).then(r => r.json()).then(equipment => {
-        const grid = document.getElementById('equipment-grid');
-        const empty = document.getElementById('equipment-empty');
-        if (equipment.length === 0) {
-          grid.innerHTML = '';
-          grid.style.display = 'none';
-          empty.style.display = 'block';
-          return;
-        }
-        empty.style.display = 'none';
-        grid.style.display = 'grid';
-        grid.innerHTML = equipment.map(e => {
-          const badgeClass = e.status === 'Activo' ? 'badge-success' : e.status === 'Inactivo' ? 'badge-danger' : 'badge-warning';
-          return '<div class="equipment-card" onclick="selectEquipment(' + e.id + ')">' +
-            '<div class="eq-code">' + esc(e.code) + '</div>' +
-            '<div class="eq-details">' +
-            '<span>Tipo: <strong>' + esc(e.type) + '</strong></span>' +
-            '<span>Marca: <strong>' + esc(e.brand) + '</strong></span>' +
-            '<span>Modelo: <strong>' + esc(e.model) + '</strong></span>' +
-            '<span>Serie: <strong>' + esc(e.serial) + '</strong></span>' +
-            '</div>' +
-            '<div style="margin-top:10px;"><span class="status-badge ' + badgeClass + '">' + esc(e.status) + '</span></div>' +
-            '</div>';
-        }).join('');
-      });
+      fetch(BASE + '/api/equipment.php?client_id=' + clientId)
+        .then(r => r.text())
+        .then(text => {
+          let equipment;
+          try { equipment = JSON.parse(text); } catch(e) {
+            console.error('Error parsing equipment response:', text);
+            return;
+          }
+          if (!Array.isArray(equipment)) {
+            console.error('Equipment response is not array:', equipment);
+            return;
+          }
+          const grid = document.getElementById('equipment-grid');
+          const empty = document.getElementById('equipment-empty');
+          if (equipment.length === 0) {
+            grid.innerHTML = '';
+            grid.style.display = 'none';
+            empty.style.display = 'block';
+            return;
+          }
+          empty.style.display = 'none';
+          grid.style.display = 'grid';
+          grid.innerHTML = equipment.map(e => {
+            const status = e.status || 'Activo';
+            const badgeClass = status === 'Activo' ? 'badge-success' : status === 'Inactivo' ? 'badge-danger' : 'badge-warning';
+            return '<div class="equipment-card" onclick="selectEquipment(' + e.id + ')">' +
+              '<div class="eq-code">' + esc(e.code) + '</div>' +
+              '<div class="eq-details">' +
+              '<span>Tipo: <strong>' + esc(e.type) + '</strong></span>' +
+              '<span>Marca: <strong>' + esc(e.brand) + '</strong></span>' +
+              '<span>Modelo: <strong>' + esc(e.model) + '</strong></span>' +
+              '<span>Serie: <strong>' + esc(e.serial) + '</strong></span>' +
+              '</div>' +
+              '<div style="margin-top:10px;"><span class="status-badge ' + badgeClass + '">' + esc(status) + '</span></div>' +
+              '</div>';
+          }).join('');
+        })
+        .catch(err => console.error('Error loading equipment:', err));
     }
 
     // ============ REPORTS ============
@@ -336,13 +371,21 @@ $base = BASE_URL;
     // ============ FORM: Nuevo Cliente ============
     document.getElementById('form-new-client').addEventListener('submit', function(e) {
       e.preventDefault();
+      const pass1 = document.getElementById('nc-password').value;
+      const pass2 = document.getElementById('nc-password2').value;
+      const errEl = document.getElementById('password-error');
+      if (pass1 !== pass2) {
+        errEl.style.display = 'block';
+        return;
+      }
+      errEl.style.display = 'none';
       fetch(BASE + '/api/clients.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: document.getElementById('nc-name').value,
           username: document.getElementById('nc-username').value,
-          password: document.getElementById('nc-password').value
+          password: pass1
         })
       }).then(r => r.json()).then(data => {
         if (data.error) return showAlert(data.error, 'error');
