@@ -20,7 +20,6 @@ $base = BASE_URL;
     </div>
     <nav>
       <span class="user-info"><?= htmlspecialchars($user['name']) ?></span>
-      <a href="<?= $base ?>/manage-equipment.php">GESTIONAR EQUIPOS</a>
       <a href="<?= $base ?>/logout.php">SALIR</a>
     </nav>
   </div>
