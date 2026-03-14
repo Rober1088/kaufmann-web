@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Trabajador - Kaufmann</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <span class="gear">&#9881;</span>
+      <h1>KAUFMANN</h1>
+    </div>
+    <nav>
+      <span class="user-info" id="user-name"></span>
+      <a href="#" onclick="showTab('clients')">CLIENTES</a>
+      <a href="#" onclick="showTab('equipment')">EQUIPOS</a>
+      <a href="#" onclick="showTab('reports')">REPORTES</a>
+      <a href="/logout">SALIR</a>
+    </nav>
+  </div>
+
+  <div class="main">
+    <h2 class="page-title">PANEL DE TRABAJADOR</h2>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('clients')">Clientes</button>
+      <button class="tab-btn" onclick="showTab('equipment')">Equipos</button>
+      <button class="tab-btn" onclick="showTab('reports')">Subir Reporte</button>
+    </div>
+
+    <!-- CLIENTS TAB -->
+    <div class="tab-content active" id="tab-clients">
+      <div class="card">
+        <h3>Clientes Registrados</h3>
+        <button class="btn btn-success btn-sm" onclick="openModal('modal-new-client')" style="margin-bottom:15px;">+ Nuevo Cliente</button>
+        <div id="alert-client"></div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Nombre / Empresa</th>
+              </tr>
+            </thead>
+            <tbody id="clients-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- EQUIPMENT TAB -->
+    <div class="tab-content" id="tab-equipment">
+      <div class="card">
+        <h3>Equipos Registrados</h3>
+        <div style="display:flex;gap:10px;margin-bottom:15px;align-items:center;">
+          <button class="btn btn-success btn-sm" onclick="openModal('modal-new-equipment')">+ Nuevo Equipo</button>
+          <select id="filter-client-eq" onchange="loadEquipment()" style="padding:8px;border:2px solid #e0e0e0;border-radius:6px;">
+            <option value="">Todos los clientes</option>
+          </select>
+        </div>
+        <div id="alert-equipment"></div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Tipo</th>
+                <th>Marca</th>
+                <th>Modelo</th>
+                <th>Serie</th>
+                <th>Cliente</th>
+              </tr>
+            </thead>
+            <tbody id="equipment-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORTS TAB -->
+    <div class="tab-content" id="tab-reports">
+      <div class="card">
+        <h3>Subir Reporte de Trabajo</h3>
+        <div id="alert-report"></div>
+        <form id="report-form" enctype="multipart/form-data">
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Cliente</label>
+              <select id="report-client" onchange="loadEquipmentForReport()" required>
+                <option value="">Seleccione un cliente</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Equipo</label>
+              <select id="report-equipment" name="equipment_id" required>
+                <option value="">Seleccione un equipo</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Código de Reporte</label>
+              <input type="text" name="report_code" placeholder="Ej: KAUF3509" required>
+            </div>
+            <div class="form-group">
+              <label>Fecha del Reporte</label>
+              <input type="date" name="report_date" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Descripción del Trabajo</label>
+            <textarea name="description" rows="3" placeholder="Descripción del trabajo realizado" required></textarea>
+          </div>
+          <div class="form-group">
+            <label>Archivo PDF</label>
+            <input type="file" name="pdf" accept=".pdf" required>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:auto;">SUBIR REPORTE</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: New Client -->
+  <div class="modal-overlay" id="modal-new-client">
+    <div class="modal">
+      <h3>Crear Nuevo Cliente</h3>
+      <form id="form-new-client">
+        <div class="form-group">
+          <label>Nombre / Empresa</label>
+          <input type="text" id="nc-name" required placeholder="Nombre del cliente o empresa">
+        </div>
+        <div class="form-group">
+          <label>Usuario</label>
+          <input type="text" id="nc-username" required placeholder="Usuario para iniciar sesión">
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="nc-password" required placeholder="Contraseña">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-sm" onclick="closeModal('modal-new-client')" style="background:#ccc;">Cancelar</button>
+          <button type="submit" class="btn btn-success btn-sm">Crear Cliente</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: New Equipment -->
+  <div class="modal-overlay" id="modal-new-equipment">
+    <div class="modal">
+      <h3>Crear Nuevo Equipo</h3>
+      <form id="form-new-equipment">
+        <div class="form-group">
+          <label>Cliente</label>
+          <select id="ne-client" required>
+            <option value="">Seleccione un cliente</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Código del Equipo</label>
+          <input type="text" id="ne-code" required placeholder="Ej: MONT-26">
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Tipo de Equipo</label>
+            <input type="text" id="ne-type" required placeholder="Ej: Montacargas">
+          </div>
+          <div class="form-group">
+            <label>Marca</label>
+            <input type="text" id="ne-brand" required placeholder="Ej: TOYOTA">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Modelo</label>
+            <input type="text" id="ne-model" required placeholder="Ej: 7FBEU20">
+          </div>
+          <div class="form-group">
+            <label>Serie</label>
+            <input type="text" id="ne-serial" required placeholder="Ej: 11922">
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-sm" onclick="closeModal('modal-new-equipment')" style="background:#ccc;">Cancelar</button>
+          <button type="submit" class="btn btn-success btn-sm">Crear Equipo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Load user info
+    fetch('/api/me').then(r => r.json()).then(u => {
+      document.getElementById('user-name').textContent = u.name;
+    });
+
+    // Tab switching
+    function showTab(tab) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      const tabNames = ['clients', 'equipment', 'reports'];
+      const idx = tabNames.indexOf(tab);
+      if (idx >= 0) document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+    }
+
+    // Modal
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    function showAlert(containerId, msg, type) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = '<div class="alert alert-' + type + '">' + msg + '</div>';
+      setTimeout(() => el.innerHTML = '', 4000);
+    }
+
+    // CLIENTS
+    function loadClients() {
+      fetch('/api/clients').then(r => r.json()).then(clients => {
+        const tbody = document.getElementById('clients-table');
+        tbody.innerHTML = clients.map(c =>
+          '<tr><td>' + c.id + '</td><td>' + c.username + '</td><td>' + c.name + '</td></tr>'
+        ).join('');
+        // Update all client selects
+        const selects = ['filter-client-eq', 'ne-client', 'report-client'];
+        selects.forEach(sid => {
+          const sel = document.getElementById(sid);
+          const firstOpt = sel.options[0].outerHTML;
+          sel.innerHTML = firstOpt + clients.map(c =>
+            '<option value="' + c.id + '">' + c.name + '</option>'
+          ).join('');
+        });
+      });
+    }
+
+    document.getElementById('form-new-client').addEventListener('submit', function(e) {
+      e.preventDefault();
+      fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('nc-name').value,
+          username: document.getElementById('nc-username').value,
+          password: document.getElementById('nc-password').value
+        })
+      }).then(r => r.json()).then(data => {
+        if (data.error) return showAlert('alert-client', data.error, 'error');
+        closeModal('modal-new-client');
+        this.reset();
+        loadClients();
+        showAlert('alert-client', 'Cliente creado exitosamente', 'success');
+      });
+    });
+
+    // EQUIPMENT
+    function loadEquipment() {
+      const clientId = document.getElementById('filter-client-eq').value;
+      const url = clientId ? '/api/equipment?client_id=' + clientId : '/api/equipment';
+      fetch(url).then(r => r.json()).then(equipment => {
+        const tbody = document.getElementById('equipment-table');
+        tbody.innerHTML = equipment.map(e =>
+          '<tr><td>' + e.code + '</td><td>' + e.type + '</td><td>' + e.brand + '</td><td>' + e.model + '</td><td>' + e.serial + '</td><td>' + e.client_name + '</td></tr>'
+        ).join('');
+      });
+    }
+
+    document.getElementById('form-new-equipment').addEventListener('submit', function(e) {
+      e.preventDefault();
+      fetch('/api/equipment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: document.getElementById('ne-code').value,
+          type: document.getElementById('ne-type').value,
+          brand: document.getElementById('ne-brand').value,
+          model: document.getElementById('ne-model').value,
+          serial: document.getElementById('ne-serial').value,
+          client_id: document.getElementById('ne-client').value
+        })
+      }).then(r => r.json()).then(data => {
+        if (data.error) return showAlert('alert-equipment', data.error, 'error');
+        closeModal('modal-new-equipment');
+        this.reset();
+        loadEquipment();
+        showAlert('alert-equipment', 'Equipo creado exitosamente', 'success');
+      });
+    });
+
+    // REPORTS
+    function loadEquipmentForReport() {
+      const clientId = document.getElementById('report-client').value;
+      if (!clientId) return;
+      fetch('/api/equipment?client_id=' + clientId).then(r => r.json()).then(equipment => {
+        const sel = document.getElementById('report-equipment');
+        sel.innerHTML = '<option value="">Seleccione un equipo</option>' + equipment.map(e =>
+          '<option value="' + e.id + '">' + e.code + ' - ' + e.brand + ' ' + e.model + '</option>'
+        ).join('');
+      });
+    }
+
+    document.getElementById('report-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      fetch('/api/reports', {
+        method: 'POST',
+        body: formData
+      }).then(r => r.json()).then(data => {
+        if (data.error) return showAlert('alert-report', data.error, 'error');
+        this.reset();
+        showAlert('alert-report', 'Reporte subido exitosamente: ' + data.report_code, 'success');
+      });
+    });
+
+    // Init
+    loadClients();
+    loadEquipment();
+  </script>
+</body>
+</html>
