@@ -5,8 +5,8 @@
 
 // Base de datos MySQL (crear en cPanel > MySQL Databases)
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'vd5ekndz_reportes');  // Prefijo de cPanel + nombre
-define('DB_USER', 'vd5ekndz_reportes');  // Prefijo de cPanel + usuario
+define('DB_NAME', 'i5746513_reportes');  // Prefijo de cPanel + nombre
+define('DB_USER', 'i5746513_reportes');  // Prefijo de cPanel + usuario
 define('DB_PASS', 'TU_PASSWORD_AQUI');   // La que asignes en cPanel
 
 // Ruta base del sistema (no cambiar si usas /reportes/)
